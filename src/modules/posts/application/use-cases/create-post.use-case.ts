@@ -19,7 +19,7 @@ export class CreatePostUseCase {
       throw new UserCannotCreatePostException();
     }
 
-    const post = PostEntity.create(input.title, input.content, input.authorId);
+    const post = PostEntity.create(input.title, input.content, input.authorId, input.tagIds ?? []);
 
     await this.postRepository.createPost(post);
 

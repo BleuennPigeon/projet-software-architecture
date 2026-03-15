@@ -15,7 +15,7 @@ export class UpdatePostUseCase {
     const post = await this.postRepository.getPostById(id);
 
     if (post) {
-      post.update(input.title, input.content);
+      post.update(input.title, input.content, input.tagIds);
       await this.postRepository.updatePost(id, post);
     }
   }

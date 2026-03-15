@@ -9,6 +9,7 @@ export class PostEntity {
   private _content: PostContent;
   private _authorId: string;
   private _status: PostStatus;
+  private _tagIds: string[];
 
   private constructor(
     readonly id: string,
@@ -16,11 +17,13 @@ export class PostEntity {
     content: PostContent,
     authorId: string,
     status: PostStatus,
+    tagIds: string[] = [],
   ) {
     this._title = title;
     this._content = content;
     this._authorId = authorId;
     this._status = status;
+    this._tagIds = tagIds;
   }
 
   public get status() {
@@ -31,6 +34,10 @@ export class PostEntity {
     return this._authorId;
   }
 
+  public get tagIds() {
+    return this._tagIds;
+  }
+
   public static reconstitute(input: Record<string, unknown>) {
     return new PostEntity(
       input.id as string,
@@ -38,6 +45,7 @@ export class PostEntity {
       new PostContent(input.content as string),
       input.authorId as string,
       input.status as PostStatus,
+      Array.isArray(input.tagIds) ? (input.tagIds as string[]) : [],
     );
   }
 
@@ -48,6 +56,7 @@ export class PostEntity {
       content: this._content.toString(),
       status: this._status,
       authorId: this._authorId,
+      tagIds: this._tagIds,
     };
   }
 
@@ -55,6 +64,7 @@ export class PostEntity {
     title: string,
     content: string,
     authorId: string,
+    tagIds: string[] = [],
   ): PostEntity {
     return new PostEntity(
       v4(),
@@ -62,16 +72,21 @@ export class PostEntity {
       new PostContent(content),
       authorId,
       'draft',
+      tagIds,
     );
   }
 
-  public update(title?: string, content?: string) {
+  public update(title?: string, content?: string, tagIds?: string[]) {
     if (title) {
       this._title = new PostTitle(title);
     }
 
     if (content) {
       this._content = new PostContent(content);
+    }
+
+    if (tagIds) {
+      this._tagIds = tagIds;
     }
   }
 }

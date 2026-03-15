@@ -10,7 +10,7 @@ export class GetPostsUseCase {
     private readonly loggingService: LoggingService,
   ) {}
 
-  public async execute(): Promise<PostEntity[]> {
+  public async execute(tagNames?: string[]): Promise<PostEntity[]> {
     this.loggingService.log('GetPostsUseCase.execute');
     return this.postRepository.getPosts();
   }

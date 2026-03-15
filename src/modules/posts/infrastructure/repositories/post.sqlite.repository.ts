@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { SQLiteTagEntity } from '../../../tags/infrastructure/entities/tag.sqlite.entity';
 import { PostEntity } from '../../domain/entities/post.entity';
 import { PostRepository } from '../../domain/repositories/post.repository';
 import { SQLitePostEntity } from '../entities/post.sqlite.entity';
@@ -8,10 +9,18 @@ import { SQLitePostEntity } from '../entities/post.sqlite.entity';
 export class SQLitePostRepository implements PostRepository {
   constructor(private readonly dataSource: DataSource) {}
 
-  public async getPosts(): Promise<PostEntity[]> {
-    const data = await this.dataSource.getRepository(SQLitePostEntity).find();
+  public async getPosts(tagNames?: string[]): Promise<PostEntity[]> {
+    const query = this.dataSource.getRepository(SQLitePostEntity).createQueryBuilder('post').leftJoinAndSelect('post.tags', 'tag');
 
-    return data.map((post) => PostEntity.reconstitute({ ...post }));
+    if (tagNames && tagNames.length > 0) {
+      query.where('tag.name IN (:...tagNames)', { tagNames });
+    }
+
+    const data = await query.getMany();
+
+    return data.map((post) =>
+      PostEntity.reconstitute({ ...post, tagIds: (post.tags ?? []).map((tag) => tag.id) }),
+    );
   }
 
   public async getPostById(id: string): Promise<PostEntity | undefined> {
@@ -19,17 +28,29 @@ export class SQLitePostRepository implements PostRepository {
       .getRepository(SQLitePostEntity)
       .findOne({ where: { id } });
 
-    return post ? PostEntity.reconstitute({ ...post }) : undefined;
+    return post
+      ? PostEntity.reconstitute({ ...post, tagIds: (post.tags ?? []).map((tag) => tag.id) }) : undefined;
   }
 
   public async createPost(input: PostEntity): Promise<void> {
-    await this.dataSource.getRepository(SQLitePostEntity).save(input.toJSON());
+    const tags = input.tagIds.length
+      ? await this.dataSource.getRepository(SQLiteTagEntity).findByIds(input.tagIds) : [];
+
+    await this.dataSource.getRepository(SQLitePostEntity).save({ ...input.toJSON(), tags });
   }
 
   public async updatePost(id: string, input: PostEntity): Promise<void> {
-    await this.dataSource
+    const existingPost = await this.dataSource
       .getRepository(SQLitePostEntity)
-      .update(id, input.toJSON());
+      .findOne({ where: { id } });
+
+    if (!existingPost) {
+      return;
+    }
+
+    const tags = input.tagIds.length ? await this.dataSource.getRepository(SQLiteTagEntity).findByIds(input.tagIds) : [];
+
+    await this.dataSource.getRepository(SQLitePostEntity).save({ ...existingPost, ...input.toJSON(), id, tags });
   }
 
   public async deletePost(id: string): Promise<void> {

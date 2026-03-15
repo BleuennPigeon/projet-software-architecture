@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Requester } from '../../../shared/auth/infrastructure/decorators/requester.decorator';
 import { JwtAuthGuard } from '../../../shared/auth/infrastructure/guards/jwt-auth.guard';
 import { UserEntity } from '../../../users/domain/entities/user.entity';
@@ -30,8 +21,10 @@ export class PostController {
   ) {}
 
   @Get()
-  public async getPosts() {
-    const posts = await this.getPostsUseCase.execute();
+  public async getPosts(@Query('tags') tags?: string) {
+    const tagNames = tags ? tags.split(',').map((tag) => tag.trim()).filter(Boolean) : undefined;
+
+    const posts = await this.getPostsUseCase.execute(tagNames);
 
     return posts.map((p) => p.toJSON());
   }
